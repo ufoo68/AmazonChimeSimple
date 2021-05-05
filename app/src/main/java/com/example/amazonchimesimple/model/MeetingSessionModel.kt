@@ -11,9 +11,7 @@ import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.Camera
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.gl.DefaultEglCoreFactory
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.gl.EglCoreFactory
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSession
-import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionConfiguration
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionCredentials
-import com.example.amazonchimesimple.device.ScreenShareManager
 import com.example.amazonchimesimple.utils.CpuVideoProcessor
 import com.example.amazonchimesimple.utils.GpuVideoProcessor
 
@@ -27,9 +25,6 @@ class MeetingSessionModel : ViewModel() {
     val credentials: MeetingSessionCredentials
         get() = meetingSession.configuration.credentials
 
-    val configuration: MeetingSessionConfiguration
-        get() = meetingSession.configuration
-
     val audioVideo: AudioVideoFacade
         get() = meetingSession.audioVideo
 
@@ -38,6 +33,4 @@ class MeetingSessionModel : ViewModel() {
     lateinit var cameraCaptureSource: CameraCaptureSource
     lateinit var gpuVideoProcessor: GpuVideoProcessor
     lateinit var cpuVideoProcessor: CpuVideoProcessor
-    // Source for screen capture and share, will be set only if created in call
-    var screenShareManager: ScreenShareManager? = null
 }

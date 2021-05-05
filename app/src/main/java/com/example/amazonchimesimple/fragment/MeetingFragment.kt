@@ -42,7 +42,6 @@ import com.amazonaws.services.chime.sdk.meetings.device.MediaDeviceType
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionCredentials
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionStatus
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionStatusCode
-import com.amazonaws.services.chime.sdk.meetings.utils.DefaultModality
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.ConsoleLogger
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.LogLevel
 import com.amazonaws.services.chime.sdkdemo.device.AudioDeviceManager
@@ -51,7 +50,6 @@ import com.example.amazonchimesimple.activity.MainActivity
 import com.example.amazonchimesimple.adapter.VideoAdapter
 import com.example.amazonchimesimple.adapter.VideoDiffCallback
 import com.example.amazonchimesimple.data.VideoCollectionTile
-import com.example.amazonchimesimple.device.ScreenShareManager
 import com.example.amazonchimesimple.model.MeetingModel
 import com.example.amazonchimesimple.utils.CpuVideoProcessor
 import com.example.amazonchimesimple.utils.GpuVideoProcessor
@@ -71,7 +69,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
     private val meetingModel: MeetingModel by lazy { ViewModelProvider(this)[MeetingModel::class.java] }
 
     private var deviceDialog: AlertDialog? = null
-    private var screenShareManager: ScreenShareManager? = null
     private val gson = Gson()
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
@@ -142,7 +139,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
         cameraCaptureSource = activity.getCameraCaptureSource()
         gpuVideoProcessor = activity.getGpuVideoProcessor()
         cpuVideoProcessor = activity.getCpuVideoProcessor()
-        screenShareManager = activity.getScreenShareManager()
         audioDeviceManager = AudioDeviceManager(audioVideo)
 
         mediaProjectionManager = activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -238,30 +234,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
         }
     }
 
-    private fun refreshAdditionalOptionsDialogItems() {
-        val isVoiceFocusEnabled = audioVideo.realtimeIsVoiceFocusEnabled()
-
-        val additionalToggles = arrayOf(
-            context?.getString(if (meetingModel.isSharingContent) R.string.disable_screen_capture_source else R.string.enable_screen_capture_source),
-            context?.getString(if (isVoiceFocusEnabled) R.string.disable_voice_focus else R.string.enable_voice_focus),
-            context?.getString(if (cameraCaptureSource.torchEnabled) R.string.disable_flashlight else R.string.enable_flashlight),
-            context?.getString(if (meetingModel.isUsingCpuVideoProcessor) R.string.disable_cpu_filter else R.string.enable_cpu_filter),
-            context?.getString(if (meetingModel.isUsingGpuVideoProcessor) R.string.disable_gpu_filter else R.string.enable_gpu_filter),
-            context?.getString(if (meetingModel.isUsingCameraCaptureSource) R.string.disable_custom_capture_source else R.string.enable_custom_capture_source)
-        )
-
-        additionalOptionsAlertDialogBuilder.setItems(additionalToggles) { _, which ->
-            when (which) {
-                0 -> toggleScreenCapture()
-                1 -> setVoiceFocusEnabled(!isVoiceFocusEnabled)
-                2 -> toggleFlashlight()
-                3 -> toggleCpuDemoFilter()
-                4 -> toggleGpuDemoFilter()
-                5 -> toggleCustomCaptureSource()
-            }
-        }
-    }
-
     override fun onAudioDeviceChanged(freshAudioDeviceList: List<MediaDevice>) {
         meetingModel.currentMediaDevices = freshAudioDeviceList
             .filter { device -> device.type != MediaDeviceType.OTHER }
@@ -326,7 +298,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
     }
 
     private fun toggleAdditionalOptionsMenu() {
-        refreshAdditionalOptionsDialogItems()
         additionalOptionsAlertDialogBuilder.create()
         additionalOptionsAlertDialogBuilder.show()
         meetingModel.isAdditionalOptionsDialogOn = true
@@ -414,33 +385,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
         meetingModel.isUsingGpuVideoProcessor = !meetingModel.isUsingGpuVideoProcessor
         if (meetingModel.isLocalVideoStarted) {
             startLocalVideo()
-        }
-    }
-
-    private fun toggleCustomCaptureSource() {
-        logger.info(
-            TAG,
-            "Toggling using custom camera source from $meetingModel.isUsingCameraCaptureSource to ${!meetingModel.isUsingCameraCaptureSource}"
-        )
-        val wasUsingCameraCaptureSource = meetingModel.isUsingCameraCaptureSource
-        meetingModel.isUsingCameraCaptureSource = !meetingModel.isUsingCameraCaptureSource
-        if (meetingModel.isLocalVideoStarted) {
-            if (wasUsingCameraCaptureSource) {
-                cameraCaptureSource.stop()
-            }
-            startLocalVideo()
-        }
-    }
-
-    private fun toggleScreenCapture() {
-        if (meetingModel.isSharingContent) {
-            audioVideo.stopContentShare()
-            screenShareManager?.stop()
-        } else {
-            startActivityForResult(
-                mediaProjectionManager.createScreenCaptureIntent(),
-                SCREEN_CAPTURE_REQUEST_CODE
-            )
         }
     }
 
@@ -547,47 +491,8 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
                     getString(R.string.user_notification_screen_share_permission_error),
                     Toast.LENGTH_LONG
                 ).show()
-            } else {
-                data?.let { startScreenShare(resultCode, it, requireContext()) }
             }
         }
-    }
-
-    private fun startScreenShare(resultCode: Int, data: Intent, fragmentContext: Context) {
-//        fragmentContext.startService(Intent(fragmentContext, ScreenCaptureService::class.java))
-
-        val screenCaptureSource = DefaultScreenCaptureSource(
-            fragmentContext,
-            logger,
-            DefaultSurfaceTextureCaptureSourceFactory(
-                logger,
-                eglCoreFactory
-            ),
-            resultCode,
-            data
-        )
-
-        val screenCaptureSourceObserver = object : CaptureSourceObserver {
-            override fun onCaptureStarted() {
-                screenShareManager?.let { source ->
-                    audioVideo.startContentShare(source)
-                }
-            }
-
-            override fun onCaptureStopped() {
-                notifyHandler("Screen capture stopped")
-            }
-
-            override fun onCaptureFailed(error: CaptureSourceError) {
-                notifyHandler("Screen capture failed with error $error")
-                audioVideo.stopContentShare()
-            }
-        }
-
-        screenShareManager = ScreenShareManager(screenCaptureSource, fragmentContext)
-        screenShareManager?.addObserver(screenCaptureSourceObserver)
-        screenShareManager?.start()
-        (activity as MainActivity).setScreenShareManager(screenShareManager)
     }
 
     private fun showVideoTile(tileState: VideoTileState) {
@@ -866,12 +771,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
             stopLocalVideo()
         }
         audioVideo.stopRemoteVideo()
-
-        // Turn off screen share when screen locked
-        if (meetingModel.isSharingContent && !powerManager.isInteractive) {
-            audioVideo.stopContentShare()
-            screenShareManager?.stop()
-        }
     }
 
     override fun onEventReceived(name: EventName, attributes: EventAttributes) {

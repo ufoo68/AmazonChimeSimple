@@ -17,7 +17,6 @@ import com.amazonaws.services.chime.sdk.meetings.device.MediaDevice
 import com.amazonaws.services.chime.sdk.meetings.session.*
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.ConsoleLogger
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.LogLevel
-import com.example.amazonchimesimple.device.ScreenShareManager
 import com.example.amazonchimesimple.R
 import com.example.amazonchimesimple.data.JoinMeetingResponse
 import com.example.amazonchimesimple.fragment.DeviceManagementFragment
@@ -202,8 +201,6 @@ class MainActivity : AppCompatActivity(),
         meetingSessionModel.cameraCaptureSource.stop()
         meetingSessionModel.gpuVideoProcessor.release()
         meetingSessionModel.cpuVideoProcessor.release()
-        meetingSessionModel.screenShareManager?.stop()
-        meetingSessionModel.screenShareManager?.release()
     }
 
     fun getAudioVideo(): AudioVideoFacade = meetingSessionModel.audioVideo
@@ -221,12 +218,6 @@ class MainActivity : AppCompatActivity(),
     fun getGpuVideoProcessor(): GpuVideoProcessor = meetingSessionModel.gpuVideoProcessor
 
     fun getCpuVideoProcessor(): CpuVideoProcessor = meetingSessionModel.cpuVideoProcessor
-
-    fun getScreenShareManager(): ScreenShareManager? = meetingSessionModel.screenShareManager
-
-    fun setScreenShareManager(screenShareManager: ScreenShareManager?) {
-        meetingSessionModel.screenShareManager = screenShareManager
-    }
 
     private fun urlRewriter(url: String): String {
         // You can change urls by url.replace("example.com", "my.example.com")
