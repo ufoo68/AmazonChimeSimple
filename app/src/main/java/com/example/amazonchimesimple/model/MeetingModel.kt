@@ -8,8 +8,6 @@ package com.example.amazonchimesimple.model
 import androidx.lifecycle.ViewModel
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.AttendeeInfo
 import com.amazonaws.services.chime.sdk.meetings.device.MediaDevice
-import com.example.amazonchimesimple.data.Message
-import com.example.amazonchimesimple.data.MetricData
 import com.example.amazonchimesimple.data.RosterAttendee
 import com.example.amazonchimesimple.data.VideoCollectionTile
 import kotlin.math.ceil
@@ -20,7 +18,6 @@ class MeetingModel : ViewModel() {
     val localTileId = 0
     private val videoTileCountPerPage = 4
 
-    val currentMetrics = mutableMapOf<String, MetricData>()
     val currentRoster = mutableMapOf<String, RosterAttendee>()
     var localVideoTileState: VideoCollectionTile? = null
     val remoteVideoTileStates = mutableListOf<VideoCollectionTile>()
@@ -29,15 +26,12 @@ class MeetingModel : ViewModel() {
     val currentScreenTiles = mutableListOf<VideoCollectionTile>()
     var currentVideoPageIndex = 0
     var currentMediaDevices = listOf<MediaDevice>()
-    var currentMessages = mutableListOf<Message>()
 
     var isMuted = false
     var isCameraOn = false
     var isDeviceListDialogOn = false
     var isAdditionalOptionsDialogOn = false
     var isSharingContent = false
-    var lastReceivedMessageTimestamp = 0L
-    var tabIndex = 0
     var isUsingCameraCaptureSource = true
     var isLocalVideoStarted = false
     var wasLocalVideoStarted = false

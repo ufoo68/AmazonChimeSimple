@@ -15,10 +15,6 @@ data class VideoCollectionTile(
     var videoRenderView: DefaultVideoRenderView? = null
     var pauseMessageView: ConstraintLayout? = null
 
-    fun setRenderViewVisibility(visibility: Int) {
-        videoRenderView?.visibility = visibility
-    }
-
     fun setPauseMessageVisibility(visibility: Int) {
         pauseMessageView?.visibility = visibility
     }

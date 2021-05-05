@@ -17,10 +17,6 @@ fun ViewGroup.inflate(@LayoutRes layoutRes: Int, attachToRoot: Boolean = false):
     return LayoutInflater.from(context).inflate(layoutRes, this, attachToRoot)
 }
 
-fun encodeURLParam(string: String?): String {
-    return URLEncoder.encode(string, "utf-8")
-}
-
 fun isLandscapeMode(context: Context?): Boolean {
     return context?.let { it.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE } ?: false
 }

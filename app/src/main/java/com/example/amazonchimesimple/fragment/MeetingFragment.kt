@@ -16,13 +16,7 @@ import android.os.PowerManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DiffUtil
@@ -35,62 +29,42 @@ import com.amazonaws.services.chime.sdk.meetings.analytics.toJsonString
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.AttendeeInfo
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.AudioVideoFacade
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.AudioVideoObserver
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.SignalUpdate
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.VolumeUpdate
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.audio.activespeakerdetector.ActiveSpeakerObserver
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.audio.activespeakerpolicy.DefaultActiveSpeakerPolicy
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.contentshare.ContentShareObserver
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.contentshare.ContentShareStatus
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.metric.MetricsObserver
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.metric.ObservableMetric
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.VideoPauseState
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.VideoTileObserver
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.VideoTileState
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.CameraCaptureSource
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.CaptureSourceError
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.CaptureSourceObserver
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.DefaultScreenCaptureSource
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.DefaultSurfaceTextureCaptureSourceFactory
+import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.*
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.gl.EglCoreFactory
 import com.amazonaws.services.chime.sdk.meetings.device.DeviceChangeObserver
 import com.amazonaws.services.chime.sdk.meetings.device.MediaDevice
 import com.amazonaws.services.chime.sdk.meetings.device.MediaDeviceType
-import com.amazonaws.services.chime.sdk.meetings.realtime.RealtimeObserver
-import com.amazonaws.services.chime.sdk.meetings.realtime.datamessage.DataMessage
-import com.amazonaws.services.chime.sdk.meetings.realtime.datamessage.DataMessageObserver
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionCredentials
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionStatus
 import com.amazonaws.services.chime.sdk.meetings.session.MeetingSessionStatusCode
 import com.amazonaws.services.chime.sdk.meetings.utils.DefaultModality
-import com.amazonaws.services.chime.sdk.meetings.utils.ModalityType
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.ConsoleLogger
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.LogLevel
 import com.amazonaws.services.chime.sdkdemo.device.AudioDeviceManager
-import com.example.amazonchimesimple.device.ScreenShareManager
 import com.example.amazonchimesimple.R
 import com.example.amazonchimesimple.activity.MainActivity
-import com.example.amazonchimesimple.adapter.*
-import com.example.amazonchimesimple.data.Message
-import com.example.amazonchimesimple.data.MetricData
-import com.example.amazonchimesimple.data.RosterAttendee
+import com.example.amazonchimesimple.adapter.VideoAdapter
+import com.example.amazonchimesimple.adapter.VideoDiffCallback
 import com.example.amazonchimesimple.data.VideoCollectionTile
+import com.example.amazonchimesimple.device.ScreenShareManager
 import com.example.amazonchimesimple.model.MeetingModel
 import com.example.amazonchimesimple.utils.CpuVideoProcessor
 import com.example.amazonchimesimple.utils.GpuVideoProcessor
-import com.example.amazonchimesimple.utils.PostLogger
 import com.example.amazonchimesimple.utils.isLandscapeMode
-import com.google.android.material.tabs.TabLayout
 import com.google.gson.Gson
-import java.util.Calendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class MeetingFragment : Fragment(),
-    RealtimeObserver, AudioVideoObserver, VideoTileObserver,
-    MetricsObserver, ActiveSpeakerObserver, DeviceChangeObserver, DataMessageObserver, ContentShareObserver, EventAnalyticsObserver {
+class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
+    ActiveSpeakerObserver, DeviceChangeObserver, EventAnalyticsObserver {
     private val logger = ConsoleLogger(LogLevel.DEBUG)
     private val mutex = Mutex()
     private val uiScope = CoroutineScope(Dispatchers.Main)
@@ -99,7 +73,6 @@ class MeetingFragment : Fragment(),
     private var deviceDialog: AlertDialog? = null
     private var screenShareManager: ScreenShareManager? = null
     private val gson = Gson()
-    private val appName = "SDKEvents"
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
     private lateinit var powerManager: PowerManager
@@ -110,7 +83,6 @@ class MeetingFragment : Fragment(),
     private lateinit var cpuVideoProcessor: CpuVideoProcessor
     private lateinit var eglCoreFactory: EglCoreFactory
     private lateinit var listener: RosterViewEventListener
-    private lateinit var postLogger: PostLogger
 
     override val scoreCallbackIntervalMs: Int? get() = 1000
 
@@ -118,42 +90,17 @@ class MeetingFragment : Fragment(),
     private val SCREEN_CAPTURE_REQUEST_CODE = 2
     private val TAG = "MeetingFragment"
 
-    // Append to attendee name if it's for content share
-    private val CONTENT_NAME_SUFFIX = "<<Content>>"
-
     private val DATA_MESSAGE_TOPIC = "chat"
-    private val DATA_MESSAGE_LIFETIME_MS = 300000
 
-    enum class SubTab(val position: Int) {
-        Attendees(0),
-        Chat(1),
-        Video(2),
-        Screen(3),
-        Metrics(4)
-    }
-
-    private lateinit var noVideoOrScreenShareAvailable: TextView
-    private lateinit var editTextMessage: EditText
     private lateinit var buttonMute: ImageButton
     private lateinit var buttonCamera: ImageButton
-    private lateinit var deviceAlertDialogBuilder: AlertDialog.Builder
     private lateinit var additionalOptionsAlertDialogBuilder: AlertDialog.Builder
-    private lateinit var viewChat: LinearLayout
-    private lateinit var recyclerViewMetrics: RecyclerView
-    private lateinit var recyclerViewRoster: RecyclerView
     private lateinit var viewVideo: LinearLayout
     private lateinit var recyclerViewVideoCollection: RecyclerView
     private lateinit var prevVideoPageButton: Button
     private lateinit var nextVideoPageButton: Button
-    private lateinit var recyclerViewScreenShareCollection: RecyclerView
-    private lateinit var recyclerViewMessages: RecyclerView
-    private lateinit var deviceListAdapter: DeviceAdapter
-    private lateinit var metricsAdapter: MetricAdapter
-    private lateinit var rosterAdapter: RosterAdapter
     private lateinit var videoTileAdapter: VideoAdapter
     private lateinit var screenTileAdapter: VideoAdapter
-    private lateinit var messageAdapter: MessageAdapter
-    private lateinit var tabLayout: TabLayout
     private lateinit var audioDeviceManager: AudioDeviceManager
 
     companion object {
@@ -197,13 +144,6 @@ class MeetingFragment : Fragment(),
         cpuVideoProcessor = activity.getCpuVideoProcessor()
         screenShareManager = activity.getScreenShareManager()
         audioDeviceManager = AudioDeviceManager(audioVideo)
-        val url = if (getString(R.string.test_url).endsWith("/")) getString(R.string.test_url) else "${getString(R.string.test_url)}/"
-        postLogger = PostLogger(
-            appName,
-            activity.getMeetingSessionConfiguration(),
-            "${url}log_meeting_event",
-            LogLevel.INFO
-        )
 
         mediaProjectionManager = activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         powerManager = activity.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -213,14 +153,8 @@ class MeetingFragment : Fragment(),
         ) as String
         setupButtonsBar(view)
         setupSubViews(view)
-        setupTab(view)
-        setupAudioDeviceSelectionDialog()
         setupAdditionalOptionsDialog()
 
-        noVideoOrScreenShareAvailable = view.findViewById(R.id.noVideoOrScreenShareAvailable)
-        refreshNoVideosOrScreenShareAvailableText()
-
-        selectTab(meetingModel.tabIndex)
         subscribeToAttendeeChangeHandlers()
         audioVideo.start()
         audioVideo.startRemoteVideo()
@@ -247,16 +181,8 @@ class MeetingFragment : Fragment(),
     }
 
     private fun setupSubViews(view: View) {
-        // Roster
-        recyclerViewRoster = view.findViewById(R.id.recyclerViewRoster)
-        recyclerViewRoster.layoutManager = LinearLayoutManager(activity)
-        rosterAdapter = RosterAdapter(meetingModel.currentRoster.values)
-        recyclerViewRoster.adapter = rosterAdapter
-        recyclerViewRoster.visibility = View.VISIBLE
-
-        // Video (camera & content)
         viewVideo = view.findViewById(R.id.subViewVideo)
-        viewVideo.visibility = View.GONE
+        viewVideo.visibility = View.VISIBLE
 
         prevVideoPageButton = view.findViewById(R.id.prevVideoPageButton)
         prevVideoPageButton.setOnClickListener {
@@ -286,124 +212,6 @@ class MeetingFragment : Fragment(),
             logger
         )
         recyclerViewVideoCollection.adapter = videoTileAdapter
-
-        recyclerViewScreenShareCollection =
-            view.findViewById(R.id.recyclerViewScreenShareCollection)
-        recyclerViewScreenShareCollection.layoutManager = LinearLayoutManager(activity)
-        screenTileAdapter =
-            VideoAdapter(
-                meetingModel.currentScreenTiles,
-                meetingModel.userPausedVideoTileIds,
-                audioVideo,
-                null,
-                context,
-                logger
-            )
-        recyclerViewScreenShareCollection.adapter = screenTileAdapter
-        recyclerViewScreenShareCollection.visibility = View.GONE
-
-        recyclerViewMetrics = view.findViewById(R.id.recyclerViewMetrics)
-        recyclerViewMetrics.layoutManager = LinearLayoutManager(activity)
-        metricsAdapter = MetricAdapter(meetingModel.currentMetrics.values)
-        recyclerViewMetrics.adapter = metricsAdapter
-        recyclerViewMetrics.visibility = View.GONE
-
-        // Chat
-        viewChat = view.findViewById(R.id.subViewChat)
-        recyclerViewMessages = view.findViewById(R.id.recyclerViewMessages)
-        recyclerViewMessages.layoutManager = LinearLayoutManager(activity)
-        messageAdapter = MessageAdapter(meetingModel.currentMessages)
-        recyclerViewMessages.adapter = messageAdapter
-
-        editTextMessage = view.findViewById(R.id.editTextChatBox)
-        editTextMessage.setOnEditorActionListener { _, actionId, _ ->
-            return@setOnEditorActionListener when (actionId) {
-                EditorInfo.IME_ACTION_SEND -> {
-                    sendMessage()
-                    true
-                }
-                else -> false
-            }
-        }
-        view.findViewById<ImageButton>(R.id.buttonSubmitMessage)?.let {
-            it.setOnClickListener { sendMessage() }
-        }
-
-        viewChat.visibility = View.GONE
-    }
-
-    private fun setupTab(view: View) {
-        tabLayout = view.findViewById(R.id.tabLayoutMeetingView)
-        SubTab.values().forEach {
-            tabLayout.addTab(
-                tabLayout.newTab().setText(it.name).setContentDescription("${it.name} Tab")
-            )
-        }
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                showViewAt(tab?.position ?: SubTab.Attendees.position)
-            }
-
-            override fun onTabReselected(tab: TabLayout.Tab?) {
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab?) {
-                if (tab?.position == SubTab.Video.position) {
-                    pauseAllRemoteVideos()
-                    setVideoSurfaceViewsVisibility(View.GONE)
-                } else if (tab?.position == SubTab.Screen.position) {
-                    pauseAllContentShares()
-                    setScreenSurfaceViewsVisibility(View.GONE)
-                }
-            }
-        })
-    }
-
-    private fun setVideoSurfaceViewsVisibility(visibility: Int) {
-        meetingModel.localVideoTileState?.setRenderViewVisibility(visibility)
-        meetingModel.remoteVideoTileStates.forEach { it.setRenderViewVisibility(visibility) }
-    }
-
-    private fun setScreenSurfaceViewsVisibility(visibility: Int) {
-        meetingModel.currentScreenTiles.forEach { it.setRenderViewVisibility(visibility) }
-    }
-
-    private fun showViewAt(index: Int) {
-        recyclerViewRoster.visibility = View.GONE
-        viewChat.visibility = View.GONE
-        viewVideo.visibility = View.GONE
-        recyclerViewScreenShareCollection.visibility = View.GONE
-        recyclerViewMetrics.visibility = View.GONE
-
-        meetingModel.tabIndex = index
-        when (index) {
-            SubTab.Attendees.position -> {
-                recyclerViewRoster.visibility = View.VISIBLE
-            }
-            SubTab.Chat.position -> {
-                viewChat.visibility = View.VISIBLE
-                scrollToLastMessage()
-            }
-            SubTab.Video.position -> {
-                viewVideo.visibility = View.VISIBLE
-                setVideoSurfaceViewsVisibility(View.VISIBLE)
-                onVideoPageUpdated()
-            }
-            SubTab.Screen.position -> {
-                recyclerViewScreenShareCollection.visibility = View.VISIBLE
-                setScreenSurfaceViewsVisibility(View.VISIBLE)
-                resumeAllContentSharesExceptUserPausedVideos()
-            }
-            SubTab.Metrics.position -> {
-                recyclerViewMetrics.visibility = View.VISIBLE
-            }
-            else -> return
-        }
-        refreshNoVideosOrScreenShareAvailableText()
-    }
-
-    private fun selectTab(index: Int) {
-        tabLayout.selectTab(tabLayout.getTabAt(index))
     }
 
     private fun createLinearLayoutManagerForOrientation(): LinearLayoutManager {
@@ -411,38 +219,6 @@ class MeetingFragment : Fragment(),
             LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
         } else {
             LinearLayoutManager(activity)
-        }
-    }
-
-    private fun setupAudioDeviceSelectionDialog() {
-        meetingModel.currentMediaDevices =
-            audioVideo.listAudioDevices().filter { device -> device.type != MediaDeviceType.OTHER }
-        deviceListAdapter = DeviceAdapter(
-            requireContext(),
-            android.R.layout.simple_list_item_1,
-            meetingModel.currentMediaDevices,
-            audioVideo,
-            audioDeviceManager)
-        deviceAlertDialogBuilder = AlertDialog.Builder(activity)
-        deviceAlertDialogBuilder.setTitle(R.string.alert_title_choose_audio)
-        deviceAlertDialogBuilder.setNegativeButton(R.string.cancel) { dialog, _ ->
-            dialog.dismiss()
-            meetingModel.isDeviceListDialogOn = false
-        }
-        deviceAlertDialogBuilder.setAdapter(deviceListAdapter) { _, which ->
-            run {
-                audioVideo.chooseAudioDevice(meetingModel.currentMediaDevices[which])
-                audioDeviceManager.setActiveAudioDevice(meetingModel.currentMediaDevices[which])
-                meetingModel.isDeviceListDialogOn = false
-            }
-        }
-
-        deviceAlertDialogBuilder.setOnCancelListener {
-            meetingModel.isDeviceListDialogOn = false
-        }
-        if (meetingModel.isDeviceListDialogOn) {
-            deviceDialog = deviceAlertDialogBuilder.create()
-            deviceDialog?.show()
         }
     }
 
@@ -490,164 +266,13 @@ class MeetingFragment : Fragment(),
         meetingModel.currentMediaDevices = freshAudioDeviceList
             .filter { device -> device.type != MediaDeviceType.OTHER }
         audioDeviceManager.reconfigureActiveAudioDevice()
-        deviceListAdapter.clear()
-        deviceListAdapter.addAll(meetingModel.currentMediaDevices)
-        deviceListAdapter.notifyDataSetChanged()
-    }
-
-    override fun onVolumeChanged(volumeUpdates: Array<VolumeUpdate>) {
-        uiScope.launch {
-            mutex.withLock {
-                volumeUpdates.forEach { (attendeeInfo, volumeLevel) ->
-                    meetingModel.currentRoster[attendeeInfo.attendeeId]?.let {
-                        meetingModel.currentRoster[attendeeInfo.attendeeId] =
-                            RosterAttendee(
-                                it.attendeeId,
-                                it.attendeeName,
-                                volumeLevel,
-                                it.signalStrength,
-                                it.isActiveSpeaker
-                            )
-                    }
-                }
-
-                rosterAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    override fun onSignalStrengthChanged(signalUpdates: Array<SignalUpdate>) {
-        uiScope.launch {
-            mutex.withLock {
-                signalUpdates.forEach { (attendeeInfo, signalStrength) ->
-                    logWithFunctionName(
-                        "onSignalStrengthChanged",
-                        "${attendeeInfo.externalUserId} $signalStrength",
-                        LogLevel.DEBUG
-                    )
-                    meetingModel.currentRoster[attendeeInfo.attendeeId]?.let {
-                        meetingModel.currentRoster[attendeeInfo.attendeeId] =
-                            RosterAttendee(
-                                it.attendeeId,
-                                it.attendeeName,
-                                it.volumeLevel,
-                                signalStrength,
-                                it.isActiveSpeaker
-                            )
-                    }
-                }
-
-                rosterAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    override fun onAttendeesJoined(attendeeInfo: Array<AttendeeInfo>) {
-        uiScope.launch {
-            mutex.withLock {
-                attendeeInfo.forEach { (attendeeId, externalUserId) ->
-                    if (DefaultModality(attendeeId).hasModality(ModalityType.Content) &&
-                        !isSelfAttendee(attendeeId) &&
-                        meetingModel.isSharingContent) {
-                        audioVideo.stopContentShare()
-                        screenShareManager?.stop()
-                        val name = meetingModel.currentRoster[DefaultModality(attendeeId).base()]?.attendeeName ?: ""
-                        notifyHandler("$name took over the screen share")
-                    }
-                    meetingModel.currentRoster.getOrPut(
-                        attendeeId,
-                        {
-                            RosterAttendee(
-                                attendeeId,
-                                getAttendeeName(attendeeId, externalUserId)
-                            )
-                        })
-                }
-
-                rosterAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    override fun onAttendeesLeft(attendeeInfo: Array<AttendeeInfo>) {
-        uiScope.launch {
-            mutex.withLock {
-                attendeeInfo.forEach { (attendeeId, _) ->
-                    meetingModel.currentRoster.remove(
-                        attendeeId
-                    )
-                }
-
-                rosterAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    override fun onAttendeesDropped(attendeeInfo: Array<AttendeeInfo>) {
-        attendeeInfo.forEach { (_, externalUserId) ->
-            notifyHandler("$externalUserId dropped")
-            logWithFunctionName(
-                object {}.javaClass.enclosingMethod?.name,
-                "$externalUserId dropped"
-            )
-        }
-
-        uiScope.launch {
-            mutex.withLock {
-                attendeeInfo.forEach { (attendeeId, _) ->
-                    meetingModel.currentRoster.remove(
-                        attendeeId
-                    )
-                }
-
-                rosterAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    override fun onAttendeesMuted(attendeeInfo: Array<AttendeeInfo>) {
-        attendeeInfo.forEach { (attendeeId, externalUserId) ->
-            logWithFunctionName(
-                object {}.javaClass.enclosingMethod?.name,
-                "Attendee with attendeeId $attendeeId and externalUserId $externalUserId muted"
-            )
-        }
-    }
-
-    override fun onAttendeesUnmuted(attendeeInfo: Array<AttendeeInfo>) {
-        attendeeInfo.forEach { (attendeeId, externalUserId) ->
-            logger.info(
-                TAG,
-                "Attendee with attendeeId $attendeeId and externalUserId $externalUserId unmuted"
-            )
-        }
     }
 
     override fun onActiveSpeakerDetected(attendeeInfo: Array<AttendeeInfo>) {
         uiScope.launch {
             mutex.withLock {
-                var needUpdate = false
-                val activeSpeakers = attendeeInfo.map { it.attendeeId }.toSet()
-                meetingModel.currentRoster.values.forEach { attendee ->
-                    if (activeSpeakers.contains(attendee.attendeeId) != attendee.isActiveSpeaker) {
-                        meetingModel.currentRoster[attendee.attendeeId] =
-                            RosterAttendee(
-                                attendee.attendeeId,
-                                attendee.attendeeName,
-                                attendee.volumeLevel,
-                                attendee.signalStrength,
-                                !attendee.isActiveSpeaker
-                            )
-                        needUpdate = true
-                    }
-                }
-
-                if (needUpdate) {
-                    meetingModel.updateRemoteVideoStatesBasedOnActiveSpeakers(attendeeInfo)
-                    onVideoPageUpdated()
-
-                    rosterAdapter.notifyDataSetChanged()
-                }
+                meetingModel.updateRemoteVideoStatesBasedOnActiveSpeakers(attendeeInfo)
+                onVideoPageUpdated()
             }
         }
     }
@@ -660,16 +285,6 @@ class MeetingFragment : Fragment(),
             scoresStr,
             LogLevel.DEBUG
         )
-    }
-
-    private fun getAttendeeName(attendeeId: String, externalUserId: String): String {
-        val attendeeName = externalUserId.split('#')[1]
-
-        return if (DefaultModality(attendeeId).hasModality(ModalityType.Content)) {
-            "$attendeeName $CONTENT_NAME_SUFFIX"
-        } else {
-            attendeeName
-        }
     }
 
     private fun toggleMute() {
@@ -685,10 +300,6 @@ class MeetingFragment : Fragment(),
 
     private fun toggleSpeaker() {
         meetingModel.currentMediaDevices = audioVideo.listAudioDevices().filter { it.type != MediaDeviceType.OTHER }
-        deviceListAdapter.clear()
-        deviceListAdapter.addAll(meetingModel.currentMediaDevices)
-        deviceListAdapter.notifyDataSetChanged()
-        deviceDialog = deviceAlertDialogBuilder.create()
         deviceDialog?.show()
         meetingModel.isDeviceListDialogOn = true
     }
@@ -712,7 +323,6 @@ class MeetingFragment : Fragment(),
             startLocalVideo()
         }
         meetingModel.isCameraOn = !meetingModel.isCameraOn
-        refreshNoVideosOrScreenShareAvailableText()
     }
 
     private fun toggleAdditionalOptionsMenu() {
@@ -834,26 +444,6 @@ class MeetingFragment : Fragment(),
         }
     }
 
-    private fun refreshNoVideosOrScreenShareAvailableText() {
-        if (meetingModel.tabIndex == SubTab.Video.position) {
-            if (meetingModel.videoStatesInCurrentPage.isNotEmpty()) {
-                noVideoOrScreenShareAvailable.visibility = View.GONE
-            } else {
-                noVideoOrScreenShareAvailable.text = getString(R.string.no_videos_available)
-                noVideoOrScreenShareAvailable.visibility = View.VISIBLE
-            }
-        } else if (meetingModel.tabIndex == SubTab.Screen.position) {
-            if (meetingModel.currentScreenTiles.isNotEmpty()) {
-                noVideoOrScreenShareAvailable.visibility = View.GONE
-            } else {
-                noVideoOrScreenShareAvailable.text = getString(R.string.no_screen_share_available)
-                noVideoOrScreenShareAvailable.visibility = View.VISIBLE
-            }
-        } else {
-            noVideoOrScreenShareAvailable.visibility = View.GONE
-        }
-    }
-
     private fun startLocalVideo() {
         meetingModel.isLocalVideoStarted = true
         if (meetingModel.isUsingCameraCaptureSource) {
@@ -901,7 +491,7 @@ class MeetingFragment : Fragment(),
         // Pause/Resume remote videos accordingly based on videoTileState and the tab that user is on
         meetingModel.remoteVideoTileStates.forEach {
             // Resume paused videos in the current page if user is on Video tab and it was not manually paused by user
-            if (meetingModel.tabIndex == SubTab.Video.position && meetingModel.videoStatesInCurrentPage.contains(it) && !meetingModel.userPausedVideoTileIds.contains(it.videoTileState.tileId)) {
+            if (meetingModel.videoStatesInCurrentPage.contains(it) && !meetingModel.userPausedVideoTileIds.contains(it.videoTileState.tileId)) {
                 if (it.videoTileState.pauseState == VideoPauseState.PausedByUserRequest) {
                     audioVideo.resumeRemoteVideoTile(it.videoTileState.tileId)
                 }
@@ -915,26 +505,6 @@ class MeetingFragment : Fragment(),
         // update video pagination control buttons states
         prevVideoPageButton.isEnabled = meetingModel.canGoToPrevVideoPage()
         nextVideoPageButton.isEnabled = meetingModel.canGoToNextVideoPage()
-    }
-
-    private fun resumeAllContentSharesExceptUserPausedVideos() {
-        meetingModel.currentScreenTiles.forEach {
-            if (!meetingModel.userPausedVideoTileIds.contains(it.videoTileState.tileId) && it.videoTileState.pauseState == VideoPauseState.PausedByUserRequest) {
-                audioVideo.resumeRemoteVideoTile(it.videoTileState.tileId)
-            }
-        }
-    }
-
-    private fun pauseAllRemoteVideos() {
-        meetingModel.remoteVideoTileStates.forEach {
-            audioVideo.pauseRemoteVideoTile(it.videoTileState.tileId)
-        }
-    }
-
-    private fun pauseAllContentShares() {
-        meetingModel.currentScreenTiles.forEach {
-            audioVideo.pauseRemoteVideoTile(it.videoTileState.tileId)
-        }
     }
 
     private fun revalidateVideoPageIndex() {
@@ -1020,23 +590,6 @@ class MeetingFragment : Fragment(),
         (activity as MainActivity).setScreenShareManager(screenShareManager)
     }
 
-    override fun onContentShareStarted() {
-        notifyHandler("Content share started")
-        logWithFunctionName(
-            object {}.javaClass.enclosingMethod?.name
-        )
-        meetingModel.isSharingContent = true
-    }
-
-    override fun onContentShareStopped(status: ContentShareStatus) {
-        notifyHandler("Content share stopped with status ${status.statusCode}")
-        logWithFunctionName(
-            object {}.javaClass.enclosingMethod?.name,
-            "$status"
-        )
-        meetingModel.isSharingContent = false
-    }
-
     private fun showVideoTile(tileState: VideoTileState) {
         val videoCollectionTile = createVideoCollectionTile(tileState)
         if (tileState.isContent) {
@@ -1044,9 +597,8 @@ class MeetingFragment : Fragment(),
             screenTileAdapter.notifyDataSetChanged()
 
             // Currently not in the Screen tab, no need to render the video tile
-            if (meetingModel.tabIndex != SubTab.Screen.position) {
-                audioVideo.pauseRemoteVideoTile(tileState.tileId)
-            }
+            audioVideo.pauseRemoteVideoTile(tileState.tileId)
+
         } else {
             if (tileState.isLocalTile) {
                 meetingModel.localVideoTileState = videoCollectionTile
@@ -1054,11 +606,6 @@ class MeetingFragment : Fragment(),
             } else {
                 meetingModel.remoteVideoTileStates.add(videoCollectionTile)
                 onVideoPageUpdated()
-
-                // Currently not in the Video tab, no need to render the video tile
-                if (meetingModel.tabIndex != SubTab.Video.position) {
-                    audioVideo.pauseRemoteVideoTile(tileState.tileId)
-                }
             }
         }
     }
@@ -1183,7 +730,6 @@ class MeetingFragment : Fragment(),
                     showVideoTile(tileState)
                 }
             }
-            refreshNoVideosOrScreenShareAvailableText()
         }
     }
 
@@ -1207,7 +753,6 @@ class MeetingFragment : Fragment(),
                 }
                 onVideoPageUpdated()
             }
-            refreshNoVideosOrScreenShareAvailableText()
         }
     }
 
@@ -1245,71 +790,6 @@ class MeetingFragment : Fragment(),
         )
     }
 
-    override fun onMetricsReceived(metrics: Map<ObservableMetric, Any>) {
-        logger.debug(TAG, "Media metrics received: $metrics")
-        uiScope.launch {
-            mutex.withLock {
-                meetingModel.currentMetrics.clear()
-                metrics.forEach { (metricsName, metricsValue) ->
-                    meetingModel.currentMetrics[metricsName.name] =
-                        MetricData(metricsName.name, metricsValue.toString())
-                }
-                metricsAdapter.notifyDataSetChanged()
-            }
-        }
-    }
-
-    private fun sendMessage() {
-        val text = editTextMessage.text.toString().trim()
-        if (text.isBlank()) return
-        audioVideo.realtimeSendDataMessage(
-            DATA_MESSAGE_TOPIC,
-            text,
-            DATA_MESSAGE_LIFETIME_MS
-        )
-        editTextMessage.text.clear()
-        // echo the message to the handler
-        onDataMessageReceived(
-            DataMessage(
-                Calendar.getInstance().timeInMillis,
-                DATA_MESSAGE_TOPIC,
-                text.toByteArray(),
-                credentials.attendeeId,
-                credentials.externalUserId,
-                false
-            )
-        )
-    }
-
-    override fun onDataMessageReceived(dataMessage: DataMessage) {
-        if (!dataMessage.throttled) {
-            if (dataMessage.timestampMs <= meetingModel.lastReceivedMessageTimestamp) return
-            meetingModel.lastReceivedMessageTimestamp = dataMessage.timestampMs
-            meetingModel.currentMessages.add(
-                Message(
-                    getAttendeeName(dataMessage.senderAttendeeId, dataMessage.senderExternalUserId),
-                    dataMessage.timestampMs,
-                    dataMessage.text(),
-                    isSelfAttendee(dataMessage.senderAttendeeId)
-                )
-            )
-            messageAdapter.notifyItemInserted(meetingModel.currentMessages.size - 1)
-            scrollToLastMessage()
-        } else {
-            notifyHandler("Message is throttled. Please resend")
-        }
-    }
-
-    private fun scrollToLastMessage() {
-        if (meetingModel.currentMessages.isNotEmpty()) {
-            recyclerViewMessages.scrollToPosition(meetingModel.currentMessages.size - 1)
-        }
-    }
-
-    private fun isSelfAttendee(attendeeId: String): Boolean {
-        return DefaultModality(attendeeId).base() == credentials.attendeeId
-    }
-
     private fun notifyHandler(
         toastMessage: String
     ) {
@@ -1335,24 +815,17 @@ class MeetingFragment : Fragment(),
     private fun subscribeToAttendeeChangeHandlers() {
         audioVideo.addAudioVideoObserver(this)
         audioVideo.addDeviceChangeObserver(this)
-        audioVideo.addMetricsObserver(this)
-        audioVideo.addRealtimeObserver(this)
-        audioVideo.addRealtimeDataMessageObserver(DATA_MESSAGE_TOPIC, this)
         audioVideo.addVideoTileObserver(this)
         audioVideo.addActiveSpeakerObserver(DefaultActiveSpeakerPolicy(), this)
-        audioVideo.addContentShareObserver(this)
         audioVideo.addEventAnalyticsObserver(this)
     }
 
     private fun unsubscribeFromAttendeeChangeHandlers() {
         audioVideo.removeAudioVideoObserver(this)
         audioVideo.removeDeviceChangeObserver(this)
-        audioVideo.removeMetricsObserver(this)
-        audioVideo.removeRealtimeObserver(this)
         audioVideo.removeRealtimeDataMessageObserverFromTopic(DATA_MESSAGE_TOPIC)
         audioVideo.removeVideoTileObserver(this)
         audioVideo.removeActiveSpeakerObserver(this)
-        audioVideo.removeContentShareObserver(this)
     }
 
     private fun endMeeting() {
@@ -1404,10 +877,6 @@ class MeetingFragment : Fragment(),
     override fun onEventReceived(name: EventName, attributes: EventAttributes) {
         // Store the logs
         attributes.putAll(audioVideo.getCommonEventAttributes())
-        postLogger.info(TAG, gson.toJson(mutableMapOf(
-            "name" to name,
-            "attributes" to attributes
-        )))
 
         logger.info(TAG, "$name ${attributes.toJsonString()}")
         when (name) {
@@ -1415,7 +884,6 @@ class MeetingFragment : Fragment(),
                 logger.info(TAG, "Meeting started on : ${audioVideo.getCommonEventAttributes().toJsonString()}")
             EventName.meetingEnded, EventName.meetingFailed -> {
                 logger.info(TAG, "Meeting history: ${gson.toJson(audioVideo.getMeetingHistory())}")
-                postLogger.publishLog(TAG)
             }
             else -> Unit
         }

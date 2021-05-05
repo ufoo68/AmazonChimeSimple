@@ -208,8 +208,6 @@ class MainActivity : AppCompatActivity(),
 
     fun getAudioVideo(): AudioVideoFacade = meetingSessionModel.audioVideo
 
-    fun getMeetingSessionConfiguration(): MeetingSessionConfiguration = meetingSessionModel.configuration
-
     fun getMeetingSessionCredentials(): MeetingSessionCredentials = meetingSessionModel.credentials
 
     fun getCachedDevice(): MediaDevice? = cachedDevice
