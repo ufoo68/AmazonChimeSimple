@@ -1,0 +1,90 @@
+<!--
+  ~ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<resources>
+    <string name="app_name">AmazonChimeSimple</string>
+    <string name="edit_meeting_id">Meeting ID</string>
+    <string name="edit_name">Your Name</string>
+    <string name="main_title">Join a meeting</string>
+    <string name="main_continue">Continue</string>
+    <string name="main_debug_settings">Debug Settings</string>
+    <string name="additional_options">Additional Options</string>
+    <string name="meeting_leave">Leave Meeting</string>
+    <string name="meeting_mute">Toggle Mute</string>
+    <string name="debug_settings_title">Debug Settings</string>
+    <string name="debug_settings_label_endpoint_url">Override Meeting Endpoint</string>
+    <string name="debug_settings_placeholder_endpoint_url">Meeting Endpoint URL</string>
+    <string name="debug_settings_button">Save</string>
+    <string name="test_url">https://qg5thqtrwe.execute-api.us-east-1.amazonaws.com/prod/</string>
+    <string name="volume_indicator">Volume Indicator</string>
+    <string name="active_speaker_indicator">Active Speaker Indicator</string>
+    <string name="screen_share_view">Screen Share</string>
+    <string name="version_prefix">amazon-chime-sdk-android@</string>
+
+    <!-- video -->
+    <string name="video_view">Video Collection</string>
+    <string name="no_screen_share_available">No screen share available</string>
+    <string name="no_videos_available">No videos available</string>
+    <string name="next_video_page">Next Page &gt;&gt;</string>
+    <string name="prev_video_page">&lt;&lt; Prev Page</string>
+    <string name="switch_camera">Switch Camera</string>
+    <string name="poor_connection_message">Poor local connection. \nVideo will resume \nwhen your connection improves.</string>
+
+    <!-- device selection -->
+    <string name="device_management_title">Select devices</string>
+    <string name="device_selection_layout">Device Selection Layout</string>
+    <string name="audio_device_title">Audio Device</string>
+    <string name="audio_device_spinner">Audio Device Spinner</string>
+    <string name="video_device_title">Video Device</string>
+    <string name="video_device_spinner">Video Device Spinner</string>
+    <string name="video_format_title">Video Format</string>
+    <string name="video_format_spinner">Video Format Spinner</string>
+    <string name="video_preview_title">Video Preview</string>
+    <string name="video_preview_view">Video Preview View</string>
+    <string name="meeting_join">Join</string>
+    <string name="preview_meeting_info">Ready to join meeting %1$s as %2$s.</string>
+
+    <!-- toggle tab -->
+    <string name="speaker_button">Toggle Speaker</string>
+    <string name="toggle_camera">Toggle Camera</string>
+    <string name="toggle_additional_options_menu">Toggle Additional Options Menu</string>
+    <string name="toggle_mute">Toggle Mute</string>
+    <string name="enable_screen_capture_source">Share screen</string>
+    <string name="disable_screen_capture_source">Stop sharing screen</string>
+    <string name="enable_voice_focus">Turn on Voice Focus (noise suppression)</string>
+    <string name="disable_voice_focus">Turn off Voice Focus (noise suppression)</string>
+    <string name="enable_flashlight">Turn on flashlight</string>
+    <string name="disable_flashlight">Turn off flashlight</string>
+    <string name="enable_cpu_filter">Turn on demo filter (CPU)</string>
+    <string name="disable_cpu_filter">Turn off demo filter (CPU)</string>
+    <string name="enable_gpu_filter">Turn on demo filter (GPU)</string>
+    <string name="disable_gpu_filter">Turn off demo filter (GPU)</string>
+    <string name="enable_custom_capture_source">Turn on custom capture source</string>
+    <string name="disable_custom_capture_source">Turn off custom capture source</string>
+
+    <!-- Alert -->
+    <string name="cancel">Cancel</string>
+    <string name="alert_title_choose_audio">Choose a device</string>
+    <string name="alert_title_additional_options">Additional Options</string>
+
+    <!-- Service -->
+    <string name="screen_capture_notification_tile">Screen Sharing</string>
+    <string name="screen_capture_notification_text">Your screen is being shared.</string>
+
+    <!-- Notify users for errors -->
+    <string name="user_notification_meeting_id_invalid">Meeting ID is invalid</string>
+    <string name="user_notification_attendee_name_invalid">Attendee name is invalid</string>
+    <string name="user_notification_permission_error">WebRTC cannot work without permissions</string>
+    <string name="user_notification_screen_share_permission_error">Screen share cannot work without permissions</string>
+    <string name="user_notification_flashlight_unavailable_error">Flashlight not available on current device</string>
+    <string name="user_notification_flashlight_custom_source_error">Cannot toggle flashlight without using custom camera capture source</string>
+    <string name="user_notification_filter_custom_source_error">Cannot toggle filters without using custom camera capture source</string>
+    <string name="user_notification_filter_both_enabled_error">Cannot toggle both filters on at same time</string>
+    <string name="user_notification_meeting_url_error">Your url is invalid</string>
+    <string name="user_notification_meeting_start_error">There was an error starting the meeting. Please try again</string>
+    <string name="enter_message">Enter message</string>
+    <string name="send_message">Send Message</string>
+    <string name="tab_layout">Tab Layout</string>
+</resources>
