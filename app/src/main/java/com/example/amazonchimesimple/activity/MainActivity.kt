@@ -77,8 +77,6 @@ class MainActivity : AppCompatActivity(),
         return withContext(ioDispatcher) {
             val url = if (meetingUrl.endsWith("/")) meetingUrl else "$meetingUrl/"
             val serverUrl = URL("${url}join")
-            val sendDataJson = "{\"title\":\"${meetingId}\",\"name\":\"${attendeeName}\"}"
-            val bodyData = sendDataJson.toByteArray()
             try {
                 val response = StringBuffer()
                 with(serverUrl.openConnection() as HttpURLConnection) {
@@ -86,11 +84,16 @@ class MainActivity : AppCompatActivity(),
                     doInput = true
                     doOutput = true
 
-                    setFixedLengthStreamingMode(bodyData.size)
+                    val body = gson.toJson(mutableMapOf(
+                        "title" to meetingId,
+                        "name" to attendeeName
+                    ))
+
                     setRequestProperty("Content-type", "application/json; charset=utf-8")
-                    outputStream.write(bodyData)
-                    outputStream.flush()
-                    outputStream.close()
+                    outputStream.use {
+                        val input = body.toByteArray()
+                        it.write(input, 0, input.size)
+                    }
 
                     BufferedReader(InputStreamReader(inputStream)).use {
                         var inputLine = it.readLine()
@@ -130,6 +133,7 @@ class MainActivity : AppCompatActivity(),
         if (hasPermissionsAlready()) {
             uiScope.launch {
                 val meetingResponseJson: String? = joinMeeting(meetingUrl, meetingId, name)
+                logger.debug(TAG, "Get meeting response: ${meetingResponseJson}")
                 val sessionConfig = createSessionConfiguration(meetingResponseJson)
                 val meetingSession = sessionConfig?.let {
                     logger.info(TAG, "Creating meeting session for meeting Id: $meetingId")
