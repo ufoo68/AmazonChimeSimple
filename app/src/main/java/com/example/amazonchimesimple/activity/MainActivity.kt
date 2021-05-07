@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        meetingId = "testId"
+        meetingId = getString(R.string.test_meeting_id)
         name = getRandomString()
         meetingUrl = getString(R.string.test_url)
         if (hasPermissionsAlready()) {
@@ -205,6 +205,9 @@ class MainActivity : AppCompatActivity(),
         meetingSessionModel.cameraCaptureSource.stop()
         meetingSessionModel.gpuVideoProcessor.release()
         meetingSessionModel.cpuVideoProcessor.release()
+        uiScope.launch {
+            leaveMeeting(meetingUrl, meetingId)
+        }
     }
 
     fun getAudioVideo(): AudioVideoFacade = meetingSessionModel.audioVideo
@@ -244,6 +247,55 @@ class MainActivity : AppCompatActivity(),
                 "Error creating session configuration: ${exception.localizedMessage}"
             )
             null
+        }
+    }
+
+    private suspend fun leaveMeeting(
+        meetingUrl: String,
+        meetingId: String?
+    ): String? {
+        return withContext(ioDispatcher) {
+            val url = if (meetingUrl.endsWith("/")) meetingUrl else "$meetingUrl/"
+            val serverUrl = URL("${url}leave")
+            try {
+                val response = StringBuffer()
+                with(serverUrl.openConnection() as HttpURLConnection) {
+                    requestMethod = "POST"
+                    doInput = true
+                    doOutput = true
+
+                    val body = gson.toJson(
+                        mutableMapOf(
+                            "title" to meetingId
+                        )
+                    )
+
+                    setRequestProperty("Content-type", "application/json; charset=utf-8")
+                    outputStream.use {
+                        val input = body.toByteArray()
+                        it.write(input, 0, input.size)
+                    }
+
+                    BufferedReader(InputStreamReader(inputStream)).use {
+                        var inputLine = it.readLine()
+                        while (inputLine != null) {
+                            response.append(inputLine)
+                            inputLine = it.readLine()
+                        }
+                        it.close()
+                    }
+
+                    if (responseCode == 200) {
+                        response.toString()
+                    } else {
+                        logger.error(TAG, "Unable to leave meeting. Response code: $responseCode")
+                        null
+                    }
+                }
+            } catch (exception: Exception) {
+                logger.error(TAG, "There was an exception while leaving the meeting: $exception")
+                null
+            }
         }
     }
 }

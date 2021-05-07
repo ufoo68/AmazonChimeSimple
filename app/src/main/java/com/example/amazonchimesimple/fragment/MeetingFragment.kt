@@ -55,9 +55,7 @@ import com.example.amazonchimesimple.utils.CpuVideoProcessor
 import com.example.amazonchimesimple.utils.GpuVideoProcessor
 import com.example.amazonchimesimple.utils.isLandscapeMode
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -165,9 +163,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
         buttonCamera = view.findViewById(R.id.buttonCamera)
         buttonCamera.setImageResource(if (meetingModel.isCameraOn) R.drawable.button_camera_on else R.drawable.button_camera)
         buttonCamera.setOnClickListener { toggleVideo() }
-
-        view.findViewById<ImageButton>(R.id.buttonMore)
-            ?.setOnClickListener { toggleAdditionalOptionsMenu() }
 
         view.findViewById<ImageButton>(R.id.buttonSpeaker)
             ?.setOnClickListener { toggleSpeaker() }
@@ -295,97 +290,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
             startLocalVideo()
         }
         meetingModel.isCameraOn = !meetingModel.isCameraOn
-    }
-
-    private fun toggleAdditionalOptionsMenu() {
-        additionalOptionsAlertDialogBuilder.create()
-        additionalOptionsAlertDialogBuilder.show()
-        meetingModel.isAdditionalOptionsDialogOn = true
-    }
-
-    private fun toggleFlashlight() {
-        logger.info(
-            TAG,
-            "Toggling flashlight from ${cameraCaptureSource.torchEnabled} to ${!cameraCaptureSource.torchEnabled}"
-        )
-        if (!meetingModel.isUsingCameraCaptureSource) {
-            logger.warn(TAG, "Cannot toggle flashlight without using custom camera capture source")
-            Toast.makeText(
-                context,
-                getString(R.string.user_notification_flashlight_custom_source_error),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        val desiredFlashlightEnabled = !cameraCaptureSource.torchEnabled
-        cameraCaptureSource.torchEnabled = desiredFlashlightEnabled
-        if (cameraCaptureSource.torchEnabled != desiredFlashlightEnabled) {
-            logger.warn(TAG, "Flashlight failed to toggle")
-            Toast.makeText(
-                context,
-                getString(R.string.user_notification_flashlight_unavailable_error),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-    }
-
-    private fun toggleCpuDemoFilter() {
-        if (!meetingModel.isUsingCameraCaptureSource) {
-            logger.warn(TAG, "Cannot toggle filter without using custom camera capture source")
-            Toast.makeText(
-                context,
-                getString(R.string.user_notification_filter_custom_source_error),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        if (meetingModel.isUsingGpuVideoProcessor) {
-            logger.warn(TAG, "Cannot toggle filter when other filter is enabled")
-            Toast.makeText(
-                context,
-                getString(R.string.user_notification_filter_both_enabled_error),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        logger.info(
-            TAG,
-            "Toggling CPU demo filter from $meetingModel.isUsingCpuVideoProcessor to ${!meetingModel.isUsingCpuVideoProcessor}"
-        )
-        meetingModel.isUsingCpuVideoProcessor = !meetingModel.isUsingCpuVideoProcessor
-        if (meetingModel.isLocalVideoStarted) {
-            startLocalVideo()
-        }
-    }
-
-    private fun toggleGpuDemoFilter() {
-        if (!meetingModel.isUsingCameraCaptureSource) {
-            logger.warn(TAG, "Cannot toggle filter without using custom camera capture source")
-            Toast.makeText(
-                context,
-                getString(R.string.user_notification_filter_custom_source_error),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        if (meetingModel.isUsingCpuVideoProcessor) {
-            logger.warn(TAG, "Cannot toggle filter when other filter is enabled")
-            Toast.makeText(
-                context,
-                getString(R.string.user_notification_filter_both_enabled_error),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        logger.info(
-            TAG,
-            "Toggling GPU demo filter from $meetingModel.isUsingGpuVideoProcessor to ${!meetingModel.isUsingGpuVideoProcessor}"
-        )
-        meetingModel.isUsingGpuVideoProcessor = !meetingModel.isUsingGpuVideoProcessor
-        if (meetingModel.isLocalVideoStarted) {
-            startLocalVideo()
-        }
     }
 
     private fun startLocalVideo() {
