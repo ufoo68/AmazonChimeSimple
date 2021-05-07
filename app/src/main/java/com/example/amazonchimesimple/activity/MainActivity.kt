@@ -22,9 +22,7 @@ import com.example.amazonchimesimple.data.JoinMeetingResponse
 import com.example.amazonchimesimple.fragment.DeviceManagementFragment
 import com.example.amazonchimesimple.fragment.MeetingFragment
 import com.example.amazonchimesimple.model.MeetingSessionModel
-import com.example.amazonchimesimple.utils.CpuVideoProcessor
-import com.example.amazonchimesimple.utils.GpuVideoProcessor
-import com.example.amazonchimesimple.utils.getRandomString
+import com.example.amazonchimesimple.utils.*
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import java.io.BufferedReader
@@ -61,55 +59,6 @@ class MainActivity : AppCompatActivity(),
         const val NAME_KEY = "NAME"
     }
 
-    private suspend fun joinMeeting(
-            meetingUrl: String,
-            meetingId: String?,
-            attendeeName: String?
-    ): String? {
-        return withContext(ioDispatcher) {
-            val url = if (meetingUrl.endsWith("/")) meetingUrl else "$meetingUrl/"
-            val serverUrl = URL("${url}join")
-            try {
-                val response = StringBuffer()
-                with(serverUrl.openConnection() as HttpURLConnection) {
-                    requestMethod = "POST"
-                    doInput = true
-                    doOutput = true
-
-                    val body = gson.toJson(mutableMapOf(
-                        "title" to meetingId,
-                        "name" to attendeeName
-                    ))
-
-                    setRequestProperty("Content-type", "application/json; charset=utf-8")
-                    outputStream.use {
-                        val input = body.toByteArray()
-                        it.write(input, 0, input.size)
-                    }
-
-                    BufferedReader(InputStreamReader(inputStream)).use {
-                        var inputLine = it.readLine()
-                        while (inputLine != null) {
-                            response.append(inputLine)
-                            inputLine = it.readLine()
-                        }
-                        it.close()
-                    }
-
-                    if (responseCode == 200) {
-                        response.toString()
-                    } else {
-                        logger.error(TAG, "Unable to join meeting. Response code: $responseCode")
-                        null
-                    }
-                }
-            } catch (exception: Exception) {
-                logger.error(TAG, "There was an exception while joining the meeting: $exception")
-                null
-            }
-        }
-    }
-
     private fun hasPermissionsAlready(): Boolean {
         return WEBRTC_PERM.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -124,7 +73,7 @@ class MainActivity : AppCompatActivity(),
         meetingUrl = getString(R.string.test_url)
         if (hasPermissionsAlready()) {
             uiScope.launch {
-                val meetingResponseJson: String? = joinMeeting(meetingUrl, meetingId, name)
+                val meetingResponseJson: String? = joinMeeting(ioDispatcher, meetingUrl, meetingId, name)
                 logger.debug(TAG, "Get meeting response: ${meetingResponseJson}")
                 val sessionConfig = createSessionConfiguration(meetingResponseJson)
                 val meetingSession = sessionConfig?.let {
@@ -197,9 +146,6 @@ class MainActivity : AppCompatActivity(),
         meetingSessionModel.cameraCaptureSource.stop()
         meetingSessionModel.gpuVideoProcessor.release()
         meetingSessionModel.cpuVideoProcessor.release()
-        uiScope.launch {
-            leaveMeeting(meetingUrl, meetingId)
-        }
     }
 
     fun getAudioVideo(): AudioVideoFacade = meetingSessionModel.audioVideo
@@ -239,55 +185,6 @@ class MainActivity : AppCompatActivity(),
                 "Error creating session configuration: ${exception.localizedMessage}"
             )
             null
-        }
-    }
-
-    private suspend fun leaveMeeting(
-        meetingUrl: String,
-        meetingId: String?
-    ): String? {
-        return withContext(ioDispatcher) {
-            val url = if (meetingUrl.endsWith("/")) meetingUrl else "$meetingUrl/"
-            val serverUrl = URL("${url}leave")
-            try {
-                val response = StringBuffer()
-                with(serverUrl.openConnection() as HttpURLConnection) {
-                    requestMethod = "POST"
-                    doInput = true
-                    doOutput = true
-
-                    val body = gson.toJson(
-                        mutableMapOf(
-                            "title" to meetingId
-                        )
-                    )
-
-                    setRequestProperty("Content-type", "application/json; charset=utf-8")
-                    outputStream.use {
-                        val input = body.toByteArray()
-                        it.write(input, 0, input.size)
-                    }
-
-                    BufferedReader(InputStreamReader(inputStream)).use {
-                        var inputLine = it.readLine()
-                        while (inputLine != null) {
-                            response.append(inputLine)
-                            inputLine = it.readLine()
-                        }
-                        it.close()
-                    }
-
-                    if (responseCode == 200) {
-                        response.toString()
-                    } else {
-                        logger.error(TAG, "Unable to leave meeting. Response code: $responseCode")
-                        null
-                    }
-                }
-            } catch (exception: Exception) {
-                logger.error(TAG, "There was an exception while leaving the meeting: $exception")
-                null
-            }
         }
     }
 }

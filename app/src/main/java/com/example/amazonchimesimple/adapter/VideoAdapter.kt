@@ -31,8 +31,7 @@ class VideoAdapter(
     private val userPausedVideoTileIds: MutableSet<Int>,
     private val audioVideoFacade: AudioVideoFacade,
     private val cameraCaptureSource: CameraCaptureSource?,
-    private val context: Context?,
-    private val logger: Logger
+    private val context: Context?
 ) : RecyclerView.Adapter<VideoHolder>() {
     private lateinit var tabContentLayout: ConstraintLayout
     private val VIDEO_ASPECT_RATIO_16_9 = 0.5625
@@ -40,7 +39,7 @@ class VideoAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoHolder {
         tabContentLayout = (context as MainActivity).findViewById(R.id.constraintLayout)
         val inflatedView = parent.inflate(R.layout.item_video, false)
-        return VideoHolder(inflatedView, audioVideoFacade, userPausedVideoTileIds, logger, cameraCaptureSource)
+        return VideoHolder(inflatedView, audioVideoFacade, userPausedVideoTileIds, cameraCaptureSource)
     }
 
     override fun getItemCount(): Int {
@@ -70,15 +69,10 @@ class VideoHolder(
     private val view: View,
     private val audioVideo: AudioVideoFacade,
     private val userPausedVideoTileIds: MutableSet<Int>,
-    private val logger: Logger,
     private val cameraCaptureSource: CameraCaptureSource?
 ) : RecyclerView.ViewHolder(view) {
 
     val tileContainer: ConstraintLayout = view.findViewById(R.id.tile_container)
-
-    init {
-        view.video_surface.logger = logger
-    }
 
     fun bindVideoTile(videoCollectionTile: VideoCollectionTile) {
         audioVideo.bindVideoView(view.video_surface, videoCollectionTile.videoTileState.tileId)

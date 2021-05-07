@@ -54,6 +54,7 @@ import com.example.amazonchimesimple.model.MeetingModel
 import com.example.amazonchimesimple.utils.CpuVideoProcessor
 import com.example.amazonchimesimple.utils.GpuVideoProcessor
 import com.example.amazonchimesimple.utils.isLandscapeMode
+import com.example.amazonchimesimple.utils.leaveMeeting
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -64,6 +65,7 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
     private val logger = ConsoleLogger(LogLevel.DEBUG)
     private val mutex = Mutex()
     private val uiScope = CoroutineScope(Dispatchers.Main)
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     private val meetingModel: MeetingModel by lazy { ViewModelProvider(this)[MeetingModel::class.java] }
 
     private var deviceDialog: AlertDialog? = null
@@ -89,7 +91,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
 
     private lateinit var buttonMute: ImageButton
     private lateinit var buttonCamera: ImageButton
-    private lateinit var additionalOptionsAlertDialogBuilder: AlertDialog.Builder
     private lateinit var viewVideo: LinearLayout
     private lateinit var recyclerViewVideoCollection: RecyclerView
     private lateinit var prevVideoPageButton: Button
@@ -147,7 +148,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
         ) as String
         setupButtonsBar(view)
         setupSubViews(view)
-        setupAdditionalOptionsDialog()
 
         subscribeToAttendeeChangeHandlers()
         audioVideo.start()
@@ -173,7 +173,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
 
     private fun setupSubViews(view: View) {
         viewVideo = view.findViewById(R.id.subViewVideo)
-        viewVideo.visibility = View.VISIBLE
 
         prevVideoPageButton = view.findViewById(R.id.prevVideoPageButton)
         prevVideoPageButton.setOnClickListener {
@@ -199,8 +198,7 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
             meetingModel.userPausedVideoTileIds,
             audioVideo,
             cameraCaptureSource,
-            context,
-            logger
+            context
         )
         recyclerViewVideoCollection.adapter = videoTileAdapter
     }
@@ -210,22 +208,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
             LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
         } else {
             LinearLayoutManager(activity)
-        }
-    }
-
-    private fun setupAdditionalOptionsDialog() {
-        additionalOptionsAlertDialogBuilder = AlertDialog.Builder(activity)
-        additionalOptionsAlertDialogBuilder.setTitle(R.string.alert_title_additional_options)
-        additionalOptionsAlertDialogBuilder.setNegativeButton(R.string.cancel) { dialog, _ ->
-            dialog.dismiss()
-            meetingModel.isAdditionalOptionsDialogOn = false
-        }
-        additionalOptionsAlertDialogBuilder.setOnDismissListener {
-            meetingModel.isAdditionalOptionsDialogOn = false
-        }
-
-        if (meetingModel.isAdditionalOptionsDialogOn) {
-            additionalOptionsAlertDialogBuilder.create().show()
         }
     }
 
@@ -638,6 +620,9 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
     }
 
     private fun endMeeting() {
+        uiScope.launch {
+            leaveMeeting(ioDispatcher, getString(R.string.test_url), getString(R.string.test_meeting_id))
+        }
         if (meetingModel.localVideoTileState != null) {
             audioVideo.unbindVideoView(meetingModel.localTileId)
         }
