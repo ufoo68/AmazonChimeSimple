@@ -6,6 +6,7 @@
 package com.example.amazonchimesimple.adapter
 
 import android.content.Context
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -15,16 +16,18 @@ import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.VideoPauseStat
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.VideoScalingType
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.CameraCaptureSource
 import com.amazonaws.services.chime.sdk.meetings.device.MediaDeviceType
-import com.amazonaws.services.chime.sdk.meetings.utils.logger.Logger
+import com.amazonaws.services.chime.sdk.meetings.utils.logger.ConsoleLogger
+import com.amazonaws.services.chime.sdk.meetings.utils.logger.LogLevel
 import com.example.amazonchimesimple.R
 import com.example.amazonchimesimple.activity.MainActivity
 import com.example.amazonchimesimple.data.VideoCollectionTile
 import com.example.amazonchimesimple.utils.inflate
-import com.example.amazonchimesimple.utils.isLandscapeMode
 import kotlinx.android.synthetic.main.item_video.view.attendee_name
 import kotlinx.android.synthetic.main.item_video.view.on_tile_button
 import kotlinx.android.synthetic.main.item_video.view.poor_connection_message
 import kotlinx.android.synthetic.main.item_video.view.video_surface
+
+private val logger = ConsoleLogger(LogLevel.DEBUG)
 
 class VideoAdapter(
     private val videoCollectionTiles: Collection<VideoCollectionTile>,
@@ -49,15 +52,11 @@ class VideoAdapter(
     override fun onBindViewHolder(holder: VideoHolder, position: Int) {
         val videoCollectionTile = videoCollectionTiles.elementAt(position)
         holder.bindVideoTile(videoCollectionTile)
+        logger.debug("test", "Position: ${position}")
         context?.let {
-            if (!videoCollectionTile.videoTileState.isContent) {
-                val viewportWidth = tabContentLayout.width
-                if (isLandscapeMode(context)) {
-                    holder.tileContainer.layoutParams.width = viewportWidth / 2
-                } else {
-                    holder.tileContainer.layoutParams.height = (VIDEO_ASPECT_RATIO_16_9 * viewportWidth).toInt()
-                }
-            }
+            val viewportWidth = tabContentLayout.width / 2
+            holder.tileContainer.layoutParams.width = viewportWidth
+            holder.tileContainer.layoutParams.height = (VIDEO_ASPECT_RATIO_16_9 * viewportWidth).toInt()
             val videoRenderView = holder.itemView.video_surface
             videoRenderView.scalingType = VideoScalingType.AspectFit
             videoRenderView.hardwareScaling = false

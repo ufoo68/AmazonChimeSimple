@@ -143,9 +143,6 @@ class MeetingFragment : Fragment(), AudioVideoObserver, VideoTileObserver,
         mediaProjectionManager = activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         powerManager = activity.getSystemService(Context.POWER_SERVICE) as PowerManager
 
-        view.findViewById<TextView>(R.id.textViewMeetingId)?.text = arguments?.getString(
-            MainActivity.MEETING_ID_KEY
-        ) as String
         setupButtonsBar(view)
         setupSubViews(view)
 
