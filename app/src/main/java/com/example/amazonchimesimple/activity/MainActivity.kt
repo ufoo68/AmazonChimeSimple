@@ -24,6 +24,7 @@ import com.example.amazonchimesimple.fragment.MeetingFragment
 import com.example.amazonchimesimple.model.MeetingSessionModel
 import com.example.amazonchimesimple.utils.CpuVideoProcessor
 import com.example.amazonchimesimple.utils.GpuVideoProcessor
+import com.example.amazonchimesimple.utils.getRandomString
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import java.io.BufferedReader
@@ -56,17 +57,8 @@ class MainActivity : AppCompatActivity(),
     )
 
     companion object {
-        private val ALLOWED_CHARACTERS = "0123456789qwertyuiopasdfghjklzxcvbnm"
         const val MEETING_ID_KEY = "MEETING_ID"
         const val NAME_KEY = "NAME"
-    }
-
-    private fun getRandomString(sizeOfRandomString: Int = 8): String {
-        val random = Random()
-        val sb = StringBuilder(sizeOfRandomString)
-        for (i in 0 until sizeOfRandomString)
-            sb.append(ALLOWED_CHARACTERS[random.nextInt(ALLOWED_CHARACTERS.length)])
-        return sb.toString()
     }
 
     private suspend fun joinMeeting(
