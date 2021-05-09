@@ -9,36 +9,25 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.AudioVideoFacade
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.CameraCaptureSource
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.DefaultCameraCaptureSource
 import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.capture.DefaultSurfaceTextureCaptureSourceFactory
-import com.amazonaws.services.chime.sdk.meetings.audiovideo.video.gl.EglCoreFactory
-import com.amazonaws.services.chime.sdk.meetings.device.MediaDevice
 import com.amazonaws.services.chime.sdk.meetings.session.*
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.ConsoleLogger
 import com.amazonaws.services.chime.sdk.meetings.utils.logger.LogLevel
 import com.example.amazonchimesimple.R
 import com.example.amazonchimesimple.data.JoinMeetingResponse
-import com.example.amazonchimesimple.fragment.DeviceManagementFragment
 import com.example.amazonchimesimple.fragment.MeetingFragment
 import com.example.amazonchimesimple.model.MeetingSessionModel
 import com.example.amazonchimesimple.utils.*
 import com.google.gson.Gson
 import kotlinx.coroutines.*
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.*
 
 class MainActivity : AppCompatActivity(),
-    DeviceManagementFragment.DeviceManagementEventListener,
-    MeetingFragment.RosterViewEventListener {
+    MeetingFragment.EventListener {
     private val logger = ConsoleLogger(LogLevel.INFO)
     private val uiScope = CoroutineScope(Dispatchers.Main)
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     private val meetingSessionModel: MeetingSessionModel by lazy { ViewModelProvider(this)[MeetingSessionModel::class.java] }
-    private var cachedDevice: MediaDevice? = null
     private val gson = Gson()
 
     private lateinit var meetingId: String
@@ -56,7 +45,6 @@ class MainActivity : AppCompatActivity(),
 
     companion object {
         const val MEETING_ID_KEY = "MEETING_ID"
-        const val NAME_KEY = "NAME"
     }
 
     private fun hasPermissionsAlready(): Boolean {
@@ -102,29 +90,16 @@ class MainActivity : AppCompatActivity(),
                 meetingSessionModel.cameraCaptureSource = DefaultCameraCaptureSource(applicationContext, logger, surfaceTextureCaptureSourceFactory).apply {
                     eventAnalyticsController = meetingSession?.eventAnalyticsController
                 }
-                meetingSessionModel.cpuVideoProcessor = CpuVideoProcessor(logger, meetingSessionModel.eglCoreFactory)
-                meetingSessionModel.gpuVideoProcessor = GpuVideoProcessor(logger, meetingSessionModel.eglCoreFactory)
 
-                val deviceManagementFragment = DeviceManagementFragment.newInstance(meetingId, name)
+                val meetingFragment = MeetingFragment.newInstance(meetingId)
                 supportFragmentManager
                     .beginTransaction()
-                    .add(R.id.root_layout, deviceManagementFragment, "deviceManagement")
+                    .add(R.id.root_layout, meetingFragment, "meeting")
                     .commit()
             }
         } else {
             ActivityCompat.requestPermissions(this, WEBRTC_PERM, WEBRTC_PERMISSION_REQUEST_CODE)
         }
-    }
-    override fun onJoinMeetingClicked() {
-        val rosterViewFragment = MeetingFragment.newInstance(meetingId)
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.root_layout, rosterViewFragment, "rosterViewFragment")
-            .commit()
-    }
-
-    override fun onCachedDeviceSelected(mediaDevice: MediaDevice) {
-        cachedDevice = mediaDevice
     }
 
     override fun onLeaveMeeting() {
@@ -144,25 +119,9 @@ class MainActivity : AppCompatActivity(),
         meetingSessionModel.audioVideo.stopContentShare()
         meetingSessionModel.audioVideo.stop()
         meetingSessionModel.cameraCaptureSource.stop()
-        meetingSessionModel.gpuVideoProcessor.release()
-        meetingSessionModel.cpuVideoProcessor.release()
     }
 
     fun getAudioVideo(): AudioVideoFacade = meetingSessionModel.audioVideo
-
-    fun getMeetingSessionCredentials(): MeetingSessionCredentials = meetingSessionModel.credentials
-
-    fun getCachedDevice(): MediaDevice? = cachedDevice
-    fun resetCachedDevice() {
-        cachedDevice = null
-    }
-    fun getEglCoreFactory(): EglCoreFactory = meetingSessionModel.eglCoreFactory
-
-    fun getCameraCaptureSource(): CameraCaptureSource = meetingSessionModel.cameraCaptureSource
-
-    fun getGpuVideoProcessor(): GpuVideoProcessor = meetingSessionModel.gpuVideoProcessor
-
-    fun getCpuVideoProcessor(): CpuVideoProcessor = meetingSessionModel.cpuVideoProcessor
 
     private fun urlRewriter(url: String): String {
         // You can change urls by url.replace("example.com", "my.example.com")

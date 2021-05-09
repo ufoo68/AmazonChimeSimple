@@ -1,126 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  ~ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-  ~ SPDX-License-Identifier: Apache-2.0
-  -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:id="@+id/meeting_layout">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/constraintLayout"
+    <Button
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <LinearLayout
-            android:id="@+id/subViewVideo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="visible"
-            android:orientation="vertical">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewVideoCollection"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:visibility="visible"
-                android:layout_weight="1"/>
-
-            <LinearLayout
-                android:id="@+id/videoPaginationControlView"
-                style="?android:attr/buttonBarStyle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="1.0">
-
-                <Button
-                    android:id="@+id/prevVideoPageButton"
-                    style="?android:attr/buttonBarButtonStyle"
-                    android:enabled="false"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.5"
-                    android:insetLeft="10dp"
-                    android:insetRight="10dp"
-                    android:text="@string/prev_video_page" />
-
-                <Button
-                    android:id="@+id/nextVideoPageButton"
-                    style="?android:attr/buttonBarButtonStyle"
-                    android:enabled="false"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0.5"
-                    android:insetLeft="10dp"
-                    android:insetRight="10dp"
-                    android:text="@string/next_video_page" />
-            </LinearLayout>
-
-        </LinearLayout>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:padding="8dp">
-
-        <ImageButton
-            android:id="@+id/buttonMute"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:contentDescription="@string/toggle_mute"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:src="@drawable/button_mute"
-            android:tint="?android:attr/textColorPrimary" />
-
-        <ImageButton
-            android:id="@+id/buttonSpeaker"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:contentDescription="@string/speaker_button"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:src="@drawable/button_speaker"
-            android:tint="?android:attr/textColorPrimary" />
-
-        <ImageButton
-            android:id="@+id/buttonCamera"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:contentDescription="@string/toggle_camera"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:src="@drawable/button_camera"
-            android:tint="?android:attr/textColorPrimary" />
-
-        <ImageButton
-            android:id="@+id/buttonLeave"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:contentDescription="@string/meeting_leave"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:src="@drawable/button_end"
-            android:tint="#F44336" />
-
-    </LinearLayout>
+        android:layout_height="40dp"
+        android:text="@string/meeting_leave"
+        android:id="@+id/meeting_leave"/>
 
 </LinearLayout>
