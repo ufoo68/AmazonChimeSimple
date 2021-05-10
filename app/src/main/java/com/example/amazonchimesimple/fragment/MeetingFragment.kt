@@ -40,6 +40,15 @@ class MeetingFragment : Fragment(), VideoTileObserver {
         }
     }
 
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is EventListener) {
+            listener = context
+        } else {
+            throw ClassCastException("$context must implement RosterViewEventListener.")
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -93,6 +102,8 @@ class MeetingFragment : Fragment(), VideoTileObserver {
         val defaultVideoRenderView = DefaultVideoRenderView(activity)
         val layout = view?.findViewById<LinearLayout>(R.id.meeting_layout)
         layout?.addView(defaultVideoRenderView, ViewGroup.LayoutParams(500, 500))
+        defaultVideoRenderView.translationX = 30f
+        defaultVideoRenderView.translationY = 100f
         videoTileMap[tileState.tileId] = defaultVideoRenderView
         audioVideo.bindVideoView(defaultVideoRenderView, tileState.tileId)
     }
