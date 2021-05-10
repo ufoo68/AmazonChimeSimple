@@ -26,6 +26,7 @@ class MeetingFragment : Fragment(), VideoTileObserver {
 
     private lateinit var audioVideo: AudioVideoFacade
     private lateinit var listener: EventListener
+    private val videoTileMap = mutableMapOf<Int, DefaultVideoRenderView>()
 
     private val WEBRTC_PERMISSION_REQUEST_CODE = 1
 
@@ -92,7 +93,8 @@ class MeetingFragment : Fragment(), VideoTileObserver {
         val defaultVideoRenderView = DefaultVideoRenderView(activity)
         val layout = view?.findViewById<LinearLayout>(R.id.meeting_layout)
         layout?.addView(defaultVideoRenderView, ViewGroup.LayoutParams(500, 500))
-        audioVideo.bindVideoView(defaultVideoRenderView,tileState.tileId)
+        videoTileMap[tileState.tileId] = defaultVideoRenderView
+        audioVideo.bindVideoView(defaultVideoRenderView, tileState.tileId)
     }
 
     override fun onVideoTileAdded(tileState: VideoTileState) {
@@ -100,7 +102,10 @@ class MeetingFragment : Fragment(), VideoTileObserver {
     }
 
     override fun onVideoTileRemoved(tileState: VideoTileState) {
+        val layout = view?.findViewById<LinearLayout>(R.id.meeting_layout)
+        layout?.removeView(videoTileMap[tileState.tileId])
         audioVideo.unbindVideoView(tileState.tileId)
+        videoTileMap.remove(tileState.tileId)
     }
 
     override fun onVideoTilePaused(tileState: VideoTileState) {
